@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP Research: Choose Your Crisis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --fg:#f0ede6;
+    --accent:#e8420a;
+    --muted:#7a766c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'DM Mono',monospace;
+    line-height:1.6;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent);color:#000;}
+
+  /* ---------- chrome ---------- */
+  #progressTrack{
+    position:fixed;top:0;left:0;right:0;height:4px;
+    background:#1c1c1c;z-index:100;transition:opacity .3s ease;
+  }
+  #progress{
+    height:100%;width:0%;background:var(--accent);
+    transition:width .35s ease;
+  }
+  #restart{
+    position:fixed;top:16px;right:18px;z-index:100;
+    font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;
+    color:var(--muted);background:none;border:none;cursor:pointer;
+    text-transform:uppercase;transition:color .2s ease;
+  }
+  #restart:hover{color:var(--accent);}
+
+  /* ---------- stage / screens ---------- */
+  #stage{position:relative;width:100%;min-height:100vh;}
+  .screen{
+    display:none;
+    width:100%;
+    max-width:860px;
+    margin:0 auto;
+    padding:88px 24px 96px;
+    transition:transform .3s ease,opacity .3s ease;
+  }
+  .screen.active{display:block;opacity:1;transform:translateX(0);}
+  .enter-right{opacity:0;transform:translateX(60px);}
+  .enter-left{opacity:0;transform:translateX(-60px);}
+  .exit-left{opacity:0;transform:translateX(-60px);}
+  .exit-right{opacity:0;transform:translateX(60px);}
+
+  /* ---------- typography ---------- */
+  h1.giant{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:clamp(2.6rem,9vw,6rem);
+    line-height:.92;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    margin:0 0 18px;
+  }
+  h2.head{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(2rem,6vw,3.4rem);
+    line-height:.98;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin:0 0 22px;
+  }
+  h3.sub{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(1.3rem,4vw,1.9rem);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:34px 0 12px;
+  }
+  .kicker{
+    font-size:clamp(.72rem,2.2vw,.85rem);
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 26px;
+  }
+  p{margin:0 0 16px;font-size:clamp(.92rem,2.4vw,1.02rem);}
+  .lead{font-size:clamp(1rem,2.8vw,1.15rem);color:var(--fg);}
+  strong{color:var(--fg);font-weight:500;}
+  .accenttext{color:var(--accent);}
+
+  /* ---------- choice buttons ---------- */
+  .choices{display:flex;flex-direction:column;gap:14px;margin-top:32px;}
+  .choice{
+    display:block;width:100%;text-align:left;
+    background:transparent;
+    color:var(--fg);
+    border:2px solid var(--fg);
+    padding:22px 22px;
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(1.15rem,4vw,1.7rem);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background .12s ease,color .12s ease,border-color .12s ease,padding-left .15s ease;
+    line-height:1.05;
+  }
+  .choice:hover,.choice:focus{
+    background:var(--accent);color:#000;border-color:var(--accent);
+    padding-left:30px;outline:none;
+  }
+  .choice .num{color:var(--accent);margin-right:12px;}
+  .choice:hover .num,.choice:focus .num{color:#000;}
+
+  .next{
+    display:inline-block;margin-top:34px;
+    background:var(--accent);color:#000;border:2px solid var(--accent);
+    padding:16px 26px;
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(1.05rem,3.4vw,1.4rem);
+    letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+    transition:background .12s ease,color .12s ease;
+  }
+  .next:hover,.next:focus{background:transparent;color:var(--accent);outline:none;}
+  .next.ghost{background:transparent;color:var(--fg);border-color:var(--fg);}
+  .next.ghost:hover{background:var(--fg);color:#000;}
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-left:3px solid var(--accent);
+    padding:4px 0 4px 18px;margin:26px 0;
+  }
+  .callout .label{
+    display:block;color:var(--accent);font-weight:500;
+    text-transform:uppercase;letter-spacing:1px;font-size:.82rem;margin-bottom:6px;
+  }
+  .redcall{
+    border:2px solid var(--accent);
+    padding:18px 20px;margin:26px 0;color:var(--accent);
+    font-size:clamp(.92rem,2.5vw,1.05rem);
+  }
+  .redcall .label{display:block;font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:1.1rem;margin-bottom:6px;}
+
+  /* ---------- lists ---------- */
+  ul.clean{list-style:none;padding:0;margin:18px 0;}
+  ul.clean li{position:relative;padding-left:24px;margin-bottom:14px;}
+  ul.clean li::before{content:"›";position:absolute;left:0;color:var(--accent);font-weight:700;}
+  ol.triage{padding-left:0;list-style:none;counter-reset:t;margin:18px 0;}
+  ol.triage li{position:relative;padding-left:52px;margin-bottom:18px;min-height:34px;}
+  ol.triage li::before{
+    counter-increment:t;content:counter(t,decimal-leading-zero);
+    position:absolute;left:0;top:-4px;
+    font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent);line-height:1;
+  }
+
+  /* ---------- strikethrough revision ---------- */
+  .revise{margin:24px 0;}
+  .bad{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--accent);text-decoration-thickness:2px;}
+  .badtag,.goodtag{
+    display:inline-block;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;
+    font-size:.85rem;padding:2px 10px;margin-bottom:8px;
+  }
+  .badtag{background:var(--accent);color:#000;}
+  .goodtag{border:1px solid var(--fg);color:var(--fg);}
+  .good{color:var(--fg);}
+
+  /* ---------- side by side ---------- */
+  .sidebyside{display:flex;gap:18px;margin:26px 0;flex-wrap:wrap;}
+  .col{flex:1 1 280px;border:1px solid #2a2a2a;padding:18px;}
+  .col.badcol{position:relative;}
+  .col.badcol .body{color:var(--muted);}
+  .col.badcol::after{
+    content:"";position:absolute;left:8%;right:8%;top:58%;height:2px;
+    background:var(--accent);transform:rotate(-4deg);
+  }
+  .col h4{font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:1.1rem;margin:0 0 12px;text-transform:uppercase;}
+  .col.badcol h4{color:var(--accent);}
+
+  /* ---------- fake schedule ---------- */
+  .schedule{border:1px solid #2a2a2a;margin:24px 0;font-size:.86rem;}
+  .schedule .row{display:flex;border-bottom:1px solid #1f1f1f;}
+  .schedule .row:last-child{border-bottom:none;}
+  .schedule .day{flex:0 0 92px;padding:12px 14px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;border-right:1px solid #1f1f1f;}
+  .schedule .task{padding:12px 14px;color:var(--fg);}
+
+  /* ---------- timeline ---------- */
+  .timeline{position:relative;margin:30px 0 10px;padding-left:28px;}
+  .timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:#2a2a2a;}
+  .tl{position:relative;margin-bottom:26px;}
+  .tl::before{content:"";position:absolute;left:-28px;top:4px;width:13px;height:13px;background:var(--bg);border:3px solid var(--accent);border-radius:0;}
+  .tl .when{font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;color:var(--accent);font-size:1.25rem;}
+  .tl .what{font-weight:500;color:var(--fg);}
+  .tl .note{color:var(--muted);font-size:.84rem;}
+
+  /* ---------- top 10 poster ---------- */
+  .poster{max-width:980px;}
+  .poster h2.head{font-size:clamp(2.4rem,8vw,4.5rem);}
+  .poster .tagline{color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-size:.8rem;margin-bottom:30px;}
+  .mistake{display:flex;gap:20px;align-items:flex-start;padding:18px 0;border-top:1px solid #1f1f1f;}
+  .mistake .n{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,8vw,3.6rem);line-height:.8;color:var(--accent);flex:0 0 auto;min-width:74px;}
+  .mistake .txt h4{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:clamp(1.15rem,3.5vw,1.5rem);margin:0 0 6px;text-transform:uppercase;}
+  .mistake .txt p{margin:0;color:var(--muted);font-size:.9rem;}
+
+  /* ---------- hub ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 40px;}
+  .hubbtn{
+    position:relative;text-align:left;background:transparent;border:2px solid var(--fg);
+    color:var(--fg);padding:26px 22px;cursor:pointer;
+    font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,4vw,1.9rem);
+    letter-spacing:1.5px;text-transform:uppercase;transition:background .12s,color .12s,border-color .12s;
+  }
+  .hubbtn:hover{background:var(--accent);color:#000;border-color:var(--accent);}
+  .hubbtn .dot{
+    position:absolute;top:14px;right:14px;width:11px;height:11px;
+    background:#2a2a2a;transition:background .25s,box-shadow .25s;
+  }
+  .hubbtn.visited .dot{background:var(--accent);box-shadow:0 0 12px 2px rgba(232,66,10,.7);}
+  .hubbtn .sm{display:block;font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:1px;color:var(--muted);margin-top:8px;text-transform:uppercase;}
+  .hubbtn:hover .sm{color:#000;}
+
+  .myth{margin-bottom:18px;}
+  .myth .m{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--accent);}
+  .myth .t{color:var(--fg);}
+  .myth .t::before{content:"→ ";color:var(--accent);}
+
+  /* ---------- closing ---------- */
+  #s-closing{max-width:900px;}
+  .closingwrap{min-height:80vh;display:flex;flex-direction:column;justify-content:center;text-align:center;}
+  .closingwrap h2{
+    font-family:'Bebas Neue',sans-serif;text-transform:uppercase;
+    font-size:clamp(2.2rem,7vw,4.4rem);line-height:.98;letter-spacing:1px;margin:0 0 34px;
+  }
+  .closingwrap .sentence{
+    font-family:'DM Mono',monospace;color:var(--accent);
+    font-size:clamp(1.15rem,3.6vw,1.7rem);line-height:1.5;margin:0 auto 40px;max-width:680px;
+  }
+  .closingwrap .last{color:var(--muted);font-size:.85rem;letter-spacing:1px;text-transform:uppercase;}
+
+  .hr{height:1px;background:#1f1f1f;margin:40px 0;border:none;}
+
+  @media (max-width:560px){
+    .grid2{grid-template-columns:1fr;}
+    .schedule .day{flex:0 0 70px;}
+    .mistake{gap:12px;}
+    .mistake .n{min-width:54px;}
+  }
+</style>
+</head>
+<body data-screen="entry">
+
+<div id="progressTrack"><div id="progress"></div></div>
+<button id="restart" onclick="go('entry','back')">↺ start over</button>
+
+<div id="stage">
+
+  <!-- ============ ENTRY ============ -->
+  <section class="screen active" id="s-entry" data-progress="0">
+    <p class="kicker">AP Research Survival Guide — built by someone who made every mistake</p>
+    <h1 class="giant">Where are you<br>right now?</h1>
+    <div class="choices">
+      <button class="choice" onclick="go('1A')">I don't know what to research</button>
+      <button class="choice" onclick="go('2A')">I'm drowning in time management</button>
+      <button class="choice" onclick="go('3A')">I'm stuck on the actual paper</button>
+      <button class="choice" onclick="go('4A')">I'm mentally falling apart</button>
+    </div>
+  </section>
+
+  <!-- ============ BRANCH 1 — TOPIC ============ -->
+  <section class="screen" id="s-1A" data-progress="18">
+    <p class="kicker">Section 01 — Choosing a topic</p>
+    <h2 class="head">What's the real problem?</h2>
+    <div class="choices">
+      <button class="choice" onclick="go('1B')">I have no idea what I'm interested in</button>
+      <button class="choice" onclick="go('1C')">I have a topic but my teacher keeps rejecting it</button>
+      <button class="choice" onclick="go('1D')">My topic is too broad / too narrow</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-1B" data-progress="40">
+    <p class="kicker">Section 01 — Finding it from scratch</p>
+    <h2 class="head">You don't find a topic.<br>You notice one.</h2>
+    <p class="lead">Stop waiting for a lightning bolt. Good topics aren't discovered in a brainstorm — they're already sitting in stuff you do without thinking. Three places to dig:</p>
+    <ul class="clean">
+      <li><strong>Start with a problem you've actually complained about.</strong> Out loud. To a friend. "Why is X always so broken?" is a research question wearing a hoodie.</li>
+      <li><strong>Look at what you Google for fun.</strong> Your search history is a more honest interest survey than anything your teacher hands you. What do you read about when no one's grading you?</li>
+      <li><strong>Find the gap between two things you already know.</strong> The intersection of your weird niche hobby and a real-world field is where original research lives. Nobody else has your exact pair of interests.</li>
+    </ul>
+    <div class="redcall">
+      <span class="label">Common mistake</span>
+      Picking something that <em>sounds</em> impressive instead of something you actually care about. You're going to live with this topic for nine months. "Impressive" wears off in three weeks. Curiosity is the only fuel that lasts.
+    </div>
+    <button class="next" onclick="go('1E')">OK I have a topic idea now →</button>
+  </section>
+
+  <section class="screen" id="s-1C" data-progress="40">
+    <p class="kicker">Section 01 — When it keeps getting rejected</p>
+    <h2 class="head">Your teacher isn't the enemy.<br>They're the first reviewer.</h2>
+    <p>Rejection usually means the topic isn't <em>researchable yet</em> — not that it's bad. Here's the move that worked for me:</p>
+    <div class="revise">
+      <span class="badtag">REJECTED</span>
+      <p class="bad">"The effects of social media on teenagers."</p>
+      <span class="goodtag">REVISED</span>
+      <p class="good">"How does Instagram's 'close friends' feature change what high school students choose to post versus hide?"</p>
+    </div>
+    <h3 class="sub">How to pivot without losing your question</h3>
+    <ul class="clean">
+      <li><strong>Narrow the population, not the curiosity.</strong> Keep what you care about; shrink who/where/when until it's something you can actually study.</li>
+      <li><strong>Trade "effects" for a mechanism.</strong> Don't ask <em>whether</em> something matters — ask <em>how</em> it happens. "How" forces a method.</li>
+      <li><strong>Bring a method to the meeting.</strong> Teachers reject topics that have no visible path to data. Show up with "I'd survey 40 students / code 30 posts / interview 6 people" and watch the rejection turn into a yes.</li>
+    </ul>
+    <button class="next" onclick="go('1E')">What makes a strong topic? →</button>
+  </section>
+
+  <section class="screen" id="s-1D" data-progress="40">
+    <p class="kicker">Section 01 — Calibrating the scope</p>
+    <h2 class="head">Too broad to finish.<br>Too narrow to find sources.</h2>
+    <p><strong>Too broad</strong> means you could write ten papers and never run out — and you'll drown trying to cover all of it. <strong>Too narrow</strong> means there's no existing literature to build on, and AP Research needs you to enter a conversation, not invent one alone.</p>
+    <h3 class="sub">Watch a topic get narrowed</h3>
+    <div class="revise">
+      <span class="badtag">TOO BROAD</span>
+      <p class="bad">"Climate change and agriculture."</p>
+      <span class="goodtag">→</span>
+      <p class="good">"Climate change and corn yields."</p>
+      <span class="goodtag">→</span>
+      <p class="good">"How have rising average July temperatures affected corn yields in Iowa counties from 2000–2020?"</p>
+    </div>
+    <p>Each step kept the heart of the idea and added a <em>boundary</em>: a crop, a region, a timeframe, a measurable variable. That last version is a paper you can actually finish.</p>
+    <button class="next" onclick="go('1E')">Now let's talk about what makes a topic actually strong →</button>
+  </section>
+
+  <section class="screen" id="s-1E" data-progress="62">
+    <p class="kicker">Section 01 — The bar</p>
+    <h2 class="head">What makes a strong<br>AP Research topic</h2>
+    <ul class="clean">
+      <li><strong>Specific.</strong> A stranger should understand exactly what you're studying from one sentence.</li>
+      <li><strong>Answerable.</strong> There's a real method that produces real data. If you can't picture the data, it's not a question yet.</li>
+      <li><strong>Original contribution.</strong> You're adding one new brick — a new population, context, or angle — not summarizing what already exists.</li>
+      <li><strong>Feasible in the timeframe.</strong> You have one school year and no budget. Be honest about what you can actually pull off.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">One bad topic I considered</span>
+      "Does music improve student focus?" — unmeasurable, already studied to death, and I had no way to control a single variable.
+    </div>
+    <div class="callout">
+      <span class="label">What I changed it to</span>
+      "Does lyrical vs. instrumental study music affect reading-comprehension scores among AP students in a timed setting?" — same interest, but now there's a population, a variable, and a test I could actually run.
+    </div>
+    <button class="next" onclick="go('hub')">I'm good on topic. Take me to the full guide →</button>
+  </section>
+
+  <!-- ============ BRANCH 2 — TIME ============ -->
+  <section class="screen" id="s-2A" data-progress="18">
+    <p class="kicker">Section 02 — Time management reality check</p>
+    <h2 class="head">What's your actual problem?</h2>
+    <div class="choices">
+      <button class="choice" onclick="go('2B')">I keep procrastinating on starting</button>
+      <button class="choice" onclick="go('2C')">I started but I'm way behind</button>
+      <button class="choice" onclick="go('2D')">I don't know what milestones I should have hit</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-2B" data-progress="45">
+    <p class="kicker">Section 02 — Getting unstuck from the start line</p>
+    <h2 class="head">You're not lazy.<br>The task is just too big.</h2>
+    <p>"Write my paper" is not a task — it's a mountain, and your brain refuses to start mountains. The fix is to make the next step embarrassingly small.</p>
+    <ul class="clean">
+      <li><strong>Break it into non-scary micro-tasks.</strong> Not "do lit review." Instead: "find 3 sources," "read 1 abstract," "write 2 sentences about it." Each one is too small to dread.</li>
+      <li><strong>The "just open the doc" rule.</strong> Don't commit to writing. Commit to <em>opening the file</em> for two minutes. 80% of the time you'll keep going. The other 20%, you opened the file — that still counts.</li>
+      <li><strong>Waiting for inspiration is the trap.</strong> Motivation comes <em>after</em> you start, not before. You don't write because you feel ready; you feel ready because you started writing.</li>
+    </ul>
+    <h3 class="sub">What a realistic week looks like</h3>
+    <div class="schedule">
+      <div class="row"><div class="day">Mon</div><div class="task">Find 3 new sources, save to Zotero. 25 min.</div></div>
+      <div class="row"><div class="day">Tue</div><div class="task">Read 1 source, write 3 sentences on it. 30 min.</div></div>
+      <div class="row"><div class="day">Wed</div><div class="task">Off. Seriously. Protect one day.</div></div>
+      <div class="row"><div class="day">Thu</div><div class="task">Draft one paragraph of whatever section is closest. 40 min.</div></div>
+      <div class="row"><div class="day">Fri</div><div class="task">Reread Thursday's paragraph, fix it, note next step. 20 min.</div></div>
+      <div class="row"><div class="day">Sat</div><div class="task">One bigger block — 90 min on the section that scares you.</div></div>
+      <div class="row"><div class="day">Sun</div><div class="task">Plan next week's 6 micro-tasks. 15 min.</div></div>
+    </div>
+    <p class="accenttext">That's about 4 hours a week. Do that consistently and you finish ahead of the people pulling all-nighters.</p>
+    <button class="next" onclick="go('hub')">Now you know the map. What else do you need? →</button>
+  </section>
+
+  <section class="screen" id="s-2C" data-progress="45">
+    <p class="kicker">Section 02 — Triage mode</p>
+    <h2 class="head">You're behind.<br>Now stop panicking and triage.</h2>
+    <p>Behind doesn't mean doomed — it means you no longer have time to do everything, so you do the <em>right</em> things in order. Work this list top to bottom:</p>
+    <ol class="triage">
+      <li><strong>Lock the research question.</strong> Nothing else can move until this is fixed in stone. Non-negotiable.</li>
+      <li><strong>Secure your method and get data.</strong> Data collection has a hard floor of real-world time (surveys need responses). Start it <em>today</em>, even imperfectly.</li>
+      <li><strong>Write the analysis around the data you actually have.</strong> Not the dream dataset — the real one.</li>
+      <li><strong>Trim the lit review to the essential 8–10 sources.</strong> You don't need 30. You need the ones your argument leans on.</li>
+      <li><strong>Polish and presentation come last.</strong> A finished rough paper beats a perfect half-paper. Always.</li>
+    </ol>
+    <p><strong>What can be cut:</strong> extra sources, fancy visualizations, a second method, the perfect intro hook. <strong>What absolutely cannot:</strong> the research question, real collected data, and an actual analysis that answers it.</p>
+    <div class="redcall">
+      <span class="label">What I wish I'd done differently in January</span>
+      I spent three weeks "perfecting" my lit review while my survey collected zero responses. By February I had a beautiful background section and no data to analyze. Send the survey <em>first</em>
+    </div>
+    <button class="next" onclick="go('hub')">Now you know the map. What else do you need? →</button>
+  </section>
+
+  <section class="screen" id="s-2D" data-progress="45">
+    <p class="kicker">Section 02 — The map</p>
+    <h2 class="head">The milestones,<br>August to May</h2>
+    <div class="timeline">
+      <div class="tl"><div class="when">Aug – Sep</div><div class="what">Topic locked.</div><div class="note">If you're still "exploring" in October, you're already behind. Commit early; you can refine later.</div></div>
+      <div class="tl"><div class="when">Oct – Nov</div><div class="what">Literature review done.</div><div class="note">Done means synthesized, not 40 open tabs. Aim for a real draft of this section.</div></div>
+      <div class="tl"><div class="when">Dec</div><div class="what">Methodology approved.</div><div class="note">Get sign-off before break. Coming back in January with an unapproved method wastes your best month.</div></div>
+      <div class="tl"><div class="when">Jan – Feb</div><div class="what">Data collected.</div><div class="note">Start the moment the method is approved. Anything involving other people takes twice as long as you think.</div></div>
+      <div class="tl"><div class="when">Mar</div><div class="what">First full draft.</div><div class="note">Ugly is fine. A complete bad draft is infinitely more useful than a perfect intro.</div></div>
+      <div class="tl"><div class="when">Apr</div><div class="what">Revision.</div><div class="note">This is where good papers are made. Budget more time for revising than you think you'll need.</div></div>
+      <div class="tl"><div class="when">Late Apr – May</div><div class="what">Final submission + presentation.</div><div class="note">Finish writing a week early so the deadline week is for polish and the oral defense, not panic.</div></div>
+    </div>
+    <button class="next" onclick="go('hub')">Now you know the map. What else do you need? →</button>
+  </section>
+
+  <!-- ============ BRANCH 3 — WRITING ============ -->
+  <section class="screen" id="s-3A" data-progress="18">
+    <p class="kicker">Section 04 — Writing the paper</p>
+    <h2 class="head">Where exactly<br>are you stuck?</h2>
+    <div class="choices">
+      <button class="choice" onclick="go('3B')">My literature review is a mess</button>
+      <button class="choice" onclick="go('3C')">I'm just summarizing sources, not arguing anything</button>
+      <button class="choice" onclick="go('3D')">I keep getting citation and evidence stuff wrong</button>
+      <button class="choice" onclick="go('3E')">I want to see the top mistakes people make</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-3B" data-progress="45">
+    <p class="kicker">Section 04 — Literature review</p>
+    <h2 class="head">A lit review is a conversation,<br>not a book report.</h2>
+    <p>The mess happens when you go source-by-source: "Smith found X. Then Jones found Y. Then Lee found Z." That's a list. A lit review is organized by <em>ideas</em>, with sources as evidence underneath them.</p>
+    <ul class="clean">
+      <li><strong>Synthesize, don't summarize.</strong> Summary says what one author said. Synthesis says what <em>three authors together</em> reveal — where they agree, clash, or leave a gap.</li>
+      <li><strong>Use "they say / I say."</strong> First lay out what the field already believes ("they say"), then show the opening your research walks through ("I say"). That opening is your whole reason to exist.</li>
+      <li><strong>Group sources thematically.</strong> One paragraph per theme or debate, not one per paper. If a paragraph cites only one source, it's probably a summary in disguise.</li>
+    </ul>
+    <div class="callout">
+      <span class="label">Lit review struggle I had</span>
+      My first draft was eight paragraphs, each summarizing one study, zero connection between them. My teacher wrote "so what?" in the margin five times. The fix was brutal: I deleted it, made a list of the 4 debates in my field, and rebuilt every paragraph around a debate instead of a source.
+    </div>
+    <button class="next" onclick="go('hub')">Paper section handled. Back to the full guide →</button>
+  </section>
+
+  <section class="screen" id="s-3C" data-progress="45">
+    <p class="kicker">Section 04 — Escaping the summary trap</p>
+    <h2 class="head">Summarizing is reporting.<br>Integrating is arguing.</h2>
+    <p>If your reader could delete your sentences and lose no argument — only facts — you're summarizing. Integration uses the source to <em>do work</em> for a point you're making.</p>
+    <div class="sidebyside">
+      <div class="col badcol">
+        <h4>Summary only</h4>
+        <p class="body">Johnson (2019) studied remote workers and found that 60% reported higher productivity. Garcia (2020) surveyed managers and found mixed opinions on remote work. Both studies looked at the modern workplace.</p>
+      </div>
+      <div class="col">
+        <h4>Integrated</h4>
+        <p>The gap between worker and manager perception is the real story: while remote employees report productivity gains (Johnson, 2019), managers remain divided (Garcia, 2020) — suggesting the conflict isn't about output, but about <em>visibility</em>. My study tests exactly that disconnect.</p>
+      </div>
+    </div>
+    <p>Same two sources. The second version makes them argue <em>for you</em> — and ends on the gap your research fills.</p>
+    <button class="next" onclick="go('hub')">Paper section handled. Back to the full guide →</button>
+  </section>
+
+  <section class="screen" id="s-3D" data-progress="45">
+    <p class="kicker">Section 04 — Citation & objectivity</p>
+    <h2 class="head">Tone and citations<br>are where easy points vanish.</h2>
+    <ul class="clean">
+      <li><strong>Don't over-rely on one source.</strong> If a single author appears in half your citations, your paper is their paper. Spread the weight across the field.</li>
+      <li><strong>Stop editorializing.</strong> Cut "obviously," "everyone knows," "shockingly." Let the evidence carry the judgment. Scholarly tone is calm, not boring.</li>
+      <li><strong>Get the format exactly right.</strong> Wrong APA/MLA mechanics signal carelessness to a reader before they've judged a single idea. Use a manager (Zotero) so you're never hand-formatting at 2am.</li>
+      <li><strong>Attribute everything that isn't yours.</strong> When in doubt, cite. An over-cited paper is fine; an under-cited one is an integrity problem.</li>
+    </ul>
+    <div class="redcall">
+      <span class="label">Citation mistake that cost me</span>
+      I paraphrased a study from memory, cited it, and got the finding slightly backwards — the author had argued the <em>opposite</em>. My reader caught it, and suddenly every other citation looked suspect. Always reopen the source and check the exact claim before you cite it. Memory lies.
+    </div>
+    <button class="next" onclick="go('hub')">Paper section handled. Back to the full guide →</button>
+  </section>
+
+  <!-- Top 10 poster -->
+  <section class="screen poster" id="s-3E" data-progress="50">
+    <h2 class="head">Top 10 mistakes<br>we made in AP Research</h2>
+    <p class="tagline">Print this. Tape it above your desk. Avoid all ten.</p>
+
+    <div class="mistake"><div class="n">01</div><div class="txt"><h4>Picking an impressive topic over an interesting one</h4><p>You burn out by November on something you never cared about. Pick the question you'd research for free.</p></div></div>
+    <div class="mistake"><div class="n">02</div><div class="txt"><h4>Treating the lit review as a summary dump</h4><p>Source-by-source paragraphs aren't a review. Organize by ideas and debates, and make the sources argue for you.</p></div></div>
+    <div class="mistake"><div class="n">03</div><div class="txt"><h4>Starting data collection too late</h4><p>Surveys and interviews run on other people's time, not yours. Launch them the day your method is approved.</p></div></div>
+    <div class="mistake"><div class="n">04</div><div class="txt"><h4>Waiting for the "perfect" research question</h4><p>It doesn't exist before you start; it emerges as you go. Commit to a good one and refine it in motion.</p></div></div>
+    <div class="mistake"><div class="n">05</div><div class="txt"><h4>Perfecting one section while ignoring the rest</h4><p>A polished intro and no analysis fails. Get a complete ugly draft first, then improve evenly.</p></div></div>
+    <div class="mistake"><div class="n">06</div><div class="txt"><h4>Over-relying on a single source</h4><p>If one author dominates your citations, it's their argument, not yours. Build from across the whole field.</p></div></div>
+    <div class="mistake"><div class="n">07</div><div class="txt"><h4>Editorializing instead of staying objective</h4><p>"Obviously" and "shockingly" weaken you. Let the evidence deliver the verdict and keep your tone scholarly.</p></div></div>
+    <div class="mistake"><div class="n">08</div><div class="txt"><h4>Ignoring your advisor's early feedback</h4><p>That margin comment in October is the same problem your reader flags in May. Fix it while it's cheap.</p></div></div>
+    <div class="mistake"><div class="n">09</div><div class="txt"><h4>Hand-formatting citations at the last minute</h4><p>One typo'd reference makes the whole paper look careless. Use Zotero from day one and never format by hand.</p></div></div>
+    <div class="mistake"><div class="n">10</div><div class="txt"><h4>Pretending the mental side doesn't exist</h4><p>Burnout tanks more papers than bad methodology. Protect sleep, plan rest, and treat your brain like part of the project.</p></div></div>
+
+    <button class="next" onclick="go('hub')">Paper section handled. Back to the full guide →</button>
+  </section>
+
+  <!-- ============ BRANCH 4 — MENTAL ============ -->
+  <section class="screen" id="s-4A" data-progress="18">
+    <p class="kicker">Section 06 — Mental survival</p>
+    <h2 class="head">This is the section<br>nobody talks about enough.</h2>
+    <p class="lead">Your transcript won't show the nights this thing kept you up. But it's the part most likely to sink the whole project — so let's actually deal with it.</p>
+    <h3 class="sub">What are you feeling right now?</h3>
+    <div class="choices">
+      <button class="choice" onclick="go('4B')">I'm burned out and don't care anymore</button>
+      <button class="choice" onclick="go('4C')">I've lost all motivation but I still care</button>
+      <button class="choice" onclick="go('4D')">I can't balance this with the rest of my life</button>
+    </div>
+  </section>
+
+  <section class="screen" id="s-4B" data-progress="45">
+    <p class="kicker">Section 06 — Burnout</p>
+    <h2 class="head">Burnout isn't laziness.<br>It's an empty tank.</h2>
+    <p>Laziness is not wanting to do the work. Burnout is wanting to and finding nothing left to do it with. They feel identical from the inside, which is why people call themselves lazy when they're actually depleted. If rest doesn't fix it and dread shows up before you even open the doc — that's burnout.</p>
+    <p><strong>The minimum viable research day.</strong> On the worst days, you don't quit and you don't grind. You do <em>one</em> tiny thing — read one abstract, fix one citation — and then you stop, guilt-free. Momentum survives. You don't.</p>
+    <p><strong>You have permission to step back.</strong> A planned day off is a strategy. An unplanned collapse in April is a crisis. Choose the first one now so you don't get the second one later.</p>
+    <div class="callout">
+      <span class="label">My hardest moment in AP Research</span>
+      In February I sat with the doc open for two hours and wrote nothing, convinced I was just lazy and behind. What I actually was, was exhausted — I hadn't taken a real day off in six weeks. I took the weekend completely off, no guilt, and wrote more on Monday than I had in the whole previous week. Rest was the productive choice. I just couldn't see it from inside the hole.
+    </div>
+    <button class="next ghost" onclick="go('hub')">You're going to finish this. →</button>
+  </section>
+
+  <section class="screen" id="s-4C" data-progress="45">
+    <p class="kicker">Section 06 — Motivation</p>
+    <h2 class="head">Lost motivation<br>but you still care.</h2>
+    <p>That's not burnout — that's the messy middle. Burnout is an empty tank; lost motivation is a full tank with no spark. The fix isn't rest, it's <em>re-anchoring</em>.</p>
+    <p><strong>Go back to why this topic mattered.</strong> Reread the first thing that made you curious — the complaint, the article, the weird question. You picked this for a reason. The reason is still true; you've just been staring at formatting for so long you forgot it.</p>
+    <p><strong>"Good enough for now" is allowed.</strong> Perfectionism disguises itself as motivation, then strangles it. Lower the bar enough to take one real step. You can raise it again in revision.</p>
+    <div class="callout">
+      <span class="label">My biggest breakthrough came when</span>
+      I stopped trying to write the "perfect" analysis and just wrote what my data obviously showed, in plain words, like I was texting a friend the result. Suddenly I had three pages. The breakthrough wasn't a brilliant idea — it was letting the first version be honest and ugly. Everything good came from revising that, not from waiting for brilliance.
+    </div>
+    <button class="next ghost" onclick="go('hub')">You're going to finish this. →</button>
+  </section>
+
+  <section class="screen" id="s-4D" data-progress="45">
+    <p class="kicker">Section 06 — Balance</p>
+    <h2 class="head">It can't take over<br>your entire life.</h2>
+    <p>AP Research expands to fill all the time you give it. So you have to give it boundaries on purpose, because it will never set its own.</p>
+    <ul class="clean">
+      <li><strong>Something had to give — make it the right thing.</strong> For me it was scrolling and a couple of low-stakes commitments (like playing videogames after school),  not sleep and not friends. Choose your cuts deliberately instead of letting the panic choose for you.</li>
+      <li><strong>Protect sleep like it's part of the assignment.</strong> A rested brain writes in one hour what a tired one fails to write in three. The all-nighter is a withdrawal you repay with interest.</li>
+      <li><strong>The AP Research tax on your social life is real — pay it honestly.</strong> Tell people "I have two focused hours tonight, then I'm free." Real plans beat the vague guilt of "I should be working" that ruins your downtime anyway.</li>
+      <li><strong>Schedule the rest, don't just hope for it.</strong> An unprotected free evening gets eaten by anxiety. A planned one actually recharges you.</li>
+    </ul>
+    <button class="next ghost" onclick="go('hub')">You're going to finish this. →</button>
+  </section>
+
+  <!-- ============ HUB ============ -->
+  <section class="screen" id="s-hub" data-progress="82">
+    <p class="kicker">The index — everything in one place</p>
+    <h2 class="head">The full guide</h2>
+    <div class="grid2">
+      <button class="hubbtn" id="hub-topic" onclick="go('1A')"><span class="dot"></span>Topic<span class="sm">Choosing what to study</span></button>
+      <button class="hubbtn" id="hub-time" onclick="go('2A')"><span class="dot"></span>Time<span class="sm">Managing the year</span></button>
+      <button class="hubbtn" id="hub-writing" onclick="go('3A')"><span class="dot"></span>Writing<span class="sm">The paper itself</span></button>
+      <button class="hubbtn" id="hub-mental" onclick="go('4A')"><span class="dot"></span>Mental<span class="sm">Surviving it</span></button>
+    </div>
+
+    <h3 class="sub">AP Research myths</h3>
+    <div class="myth"><div class="m">You need a groundbreaking, never-before-seen topic.</div><div class="t">You need one new brick — a new context or population on an existing question. That's "original" enough.</div></div>
+    <div class="myth"><div class="m">More sources always means a better paper.</div><div class="t">Ten sources you actually integrate beat forty you name-drop once.</div></div>
+    <div class="myth"><div class="m">The smartest students don't struggle with this.</div><div class="t">They struggle exactly as much. They just started earlier and asked for help sooner.</div></div>
+    <div class="myth"><div class="m">Your first draft should be good.</div><div class="t">Your first draft should exist. Good is a revision problem, and revision can't start until there's a draft.</div></div>
+    <div class="myth"><div class="m">The presentation is the easy part at the end.</div><div class="t">The oral defense is graded too, and "I'll wing it" is visible from space. Rehearse it like it counts.</div></div>
+
+    <h3 class="sub">Things teachers never warn you about</h3>
+    <ul class="clean">
+      <li>Your IRB / approval step takes longer than you think. Start the paperwork before you feel ready.</li>
+      <li>People ghost your survey. Plan for a 20% response rate and send way more invites than you need.</li>
+      <li>Your research question <em>will</em> change mid-project. That's not failure — that's how research works.</li>
+      <li>"Done" sources you found in October won't make sense when you reread them in March. Take notes the first time.</li>
+      <li>The rubric language is vague on purpose. Read exemplar papers to see what the words actually mean.</li>
+    </ul>
+
+    <h3 class="sub">Best tools &amp; resources</h3>
+    <ul class="clean">
+      <li><strong>Zotero</strong> — free citation manager that auto-formats APA/MLA and stores every PDF. Set this up first; it saves you from formatting hell.</li>
+      <li><strong>Google Scholar (+ alerts)</strong> — search academic sources and set an alert on your keywords so new papers come to you.</li>
+      <li><strong>Notion / Google Docs outline template</strong> — keep your question, sources, and section drafts in one place you actually revisit.</li>
+      <li><strong>A Pomodoro timer</strong> — 25 minutes on, 5 off. The single best trick for "I can't make myself start."</li>
+      <li><strong>Connected Papers</strong> — visual map of how studies cite each other; brilliant for finding the key papers in a field fast.</li>
+    </ul>
+
+    <hr class="hr">
+    <button class="next" onclick="go('closing')">Read the last thing →</button>
+  </section>
+
+  <!-- ============ CLOSING ============ -->
+  <section class="screen" id="s-closing" data-progress="100">
+    <div class="closingwrap">
+      <h2>One sentence I wish someone had told me in August.</h2>
+      <p class="sentence">You will hate your paper by March. But one day, when you finish it, you're going to miss it.</p>
+      <button class="next" onclick="go('s-hub')">Back to Hub →</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ---------- state ----------
+  const state = {
+    current: 'entry',
+    visited: { topic:false, time:false, writing:false, mental:false }
+  };
+
+  const order = []; // simple history for direction inference
+  const progressEl = document.getElementById('progress');
+  const restartBtn = document.getElementById('restart');
+
+  function branchOf(id){
+    if(id[0]==='1') return 'topic';
+    if(id[0]==='2') return 'time';
+    if(id[0]==='3') return 'writing';
+    if(id[0]==='4') return 'mental';
+    return null;
+  }
+
+  function setProgress(el){
+    const p = el.getAttribute('data-progress') || 0;
+    progressEl.style.width = p + '%';
+  }
+
+  function markVisited(){
+    Object.keys(state.visited).forEach(k=>{
+      const btn = document.getElementById('hub-'+k);
+      if(btn) btn.classList.toggle('visited', state.visited[k]);
+    });
+  }
+
+  function go(id, forceDir){
+    const next = document.getElementById('s-'+id);
+    const prev = document.getElementById('s-'+state.current);
+    if(!next || next===prev) return;
+
+    // direction: forward unless explicitly back, or returning to entry/hub
+    let dir = forceDir || 'forward';
+
+    // outgoing
+    prev.style.position = 'absolute';
+    prev.style.top = '0';
+    prev.style.left = '50%';
+    prev.style.transform = 'translateX(-50%)';
+    prev.classList.remove('active');
+    // force the slide-out on next frame
+    requestAnimationFrame(()=>{
+      prev.classList.add(dir==='forward' ? 'exit-left' : 'exit-right');
+    });
+
+    // incoming
+    next.style.position = 'relative';
+    next.style.top = ''; next.style.left = ''; next.style.transform = '';
+    next.classList.remove('exit-left','exit-right');
+    next.style.display = 'block';
+    next.classList.add(dir==='forward' ? 'enter-right' : 'enter-left');
+    void next.offsetWidth; // reflow so the transition runs
+    next.classList.add('active');
+    next.classList.remove('enter-right','enter-left');
+
+    window.scrollTo(0,0);
+
+    setTimeout(()=>{
+      prev.style.display = 'none';
+      prev.style.position = '';
+      prev.style.top = prev.style.left = prev.style.transform = '';
+      prev.classList.remove('exit-left','exit-right');
+    }, 330);
+
+    // bookkeeping
+    state.current = id;
+    const b = branchOf(id);
+    if(b){ state.visited[b] = true; }
+    markVisited();
+    setProgress(next);
+
+    // strip chrome on poster + closing
+    const bare = (id==='3E' || id==='closing');
+    document.getElementById('progressTrack').style.opacity = bare ? '0' : '1';
+    restartBtn.style.display = (bare || id==='entry') ? 'none' : 'block';
+    document.body.dataset.screen = id;
+  }
+
+  // keyboard: Escape returns home
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') go('entry','back');
+  });
+
+  // init
+  setProgress(document.getElementById('s-entry'));
+  restartBtn.style.display = 'none'; // hidden on entry
+  window.go = go;
+</script>
+</body>
+</html>
